@@ -36,7 +36,7 @@ onMounted(async () => {
 async function getData() {
   const { all_tasks } = await useGetData();
   taskData.value = all_tasks.value
-  console.log("test", taskData.value);
+  //console.log("test", taskData.value);
   await getStats();
 }
 

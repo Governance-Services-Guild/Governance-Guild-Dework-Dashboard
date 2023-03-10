@@ -6,6 +6,7 @@ export const useStore = defineStore("test", {
     number: 1,
     group: "",
     tasks: [],
+    assignees: [],
     wallet: "",
   }),
   actions: {
@@ -20,6 +21,9 @@ export const useStore = defineStore("test", {
     },
     changeTasks(value) {
       this.tasks = value;
+    },
+    changeAssignees(value) {
+      this.assignees = value;
     },
     changeWallet(value) {
       this.wallet = value;
