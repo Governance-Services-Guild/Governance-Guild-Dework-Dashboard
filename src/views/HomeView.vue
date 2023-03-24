@@ -9,7 +9,7 @@ const sortedData = ref([])
 let everyTask = [];
 const store = useStore();
 let lastRefresh = 0;
-
+/*
 onMounted(async () => {
   lastRefresh = parseInt(localStorage.getItem("refreshtime"))
     ? parseInt(localStorage.getItem("refreshtime"))
@@ -31,7 +31,7 @@ onMounted(async () => {
   } else {
     await getStats();
   }
-});
+});*/
 
 async function getData() {
   const { all_tasks } = await useGetData();
@@ -40,14 +40,17 @@ async function getData() {
   await getStats();
 }
 
+async function statsButton() {
+  const { sorted_data } = await getStats();
+  sortedData.value = sorted_data.value
+  console.log('stats', sortedData.value)
+  const str = JSON.stringify(sortedData);
+  navigator.clipboard.writeText(str);
+}
 
 async function getStats() {
   const { sorted_data } = await useSortData();
-  sortedData.value = sorted_data.value
-  console.log('stats', sortedData.value)
-
-  const str = JSON.stringify(sortedData.value);
-  navigator.clipboard.writeText(str);
+  return { sorted_data };
 }
 
 </script>
@@ -57,7 +60,7 @@ async function getStats() {
     <div>
       <p>Home page</p>
       <button  @click="getData()">Get Data</button>
-      <button  @click="getStats()">Get Stats</button>
+      <button  @click="statsButton()">Get Stats</button>
     </div>
   </main>
 </template>
