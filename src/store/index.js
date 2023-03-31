@@ -6,6 +6,7 @@ export const useStore = defineStore("test", {
     number: 1,
     group: "",
     tasks: [],
+    tags: [],
     assignees: [],
     sortedData: [],
   }),
@@ -21,6 +22,9 @@ export const useStore = defineStore("test", {
     },
     changeTasks(value) {
       this.tasks = value;
+    },
+    changeTags(value) {
+      this.tags = value;
     },
     changeAssignees(value) {
       this.assignees = value;

@@ -23,9 +23,6 @@ export async function useGetData() {
       if (data) {
         all_tasks.value = data;
         store.changeTasks(all_tasks.value);
-        if (localStorage.getItem("alltasks") == null) {
-          localStorage.setItem("alltasks", JSON.stringify(store.tasks));
-        }
       }
     } catch (error) {
       alert(error.message);
