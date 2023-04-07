@@ -21,6 +21,12 @@ export async function useSortData() {
   const tags = ref([])
 
   async function sortData() {
+    sorted_data.value['tasks'] = {}
+    sorted_data.value['tasks']['backlog'] = 0
+    sorted_data.value['tasks']['todo'] = 0
+    sorted_data.value['tasks']['in_progress'] = 0
+    sorted_data.value['tasks']['in_review'] = 0
+    sorted_data.value['tasks']['done'] = 0
     done.value = 0
     storypoints.value = 0
     // still busy building and testing
@@ -50,6 +56,11 @@ export async function useSortData() {
       console.log(store.tasks[i].status, done.value)
     }
     console.log("storypoints", storypoints.value, done.value, todo.value)
+    sorted_data.value['tasks']['backlog'] = backlog.value
+    sorted_data.value['tasks']['todo'] = todo.value
+    sorted_data.value['tasks']['in_progress'] = inprogress.value
+    sorted_data.value['tasks']['in_review'] = inreview.value
+    sorted_data.value['tasks']['done'] = done.value
     //sorted_data.value = store.tasks
   }
 
@@ -93,11 +104,17 @@ export async function useSortData() {
       if (data) {
         sorted_data.value['taskTypes'] = {};
         for (let i in data) {
-          tags.value.push(data[i].tag)
-          sorted_data.value['taskTypes'][data[i].tag] = {}
-          sorted_data.value['taskTypes'][data[i].tag]["storypoints"] = 0;
-          sorted_data.value['taskTypes'][data[i].tag]["tasks"] = 0;
-          sorted_data.value['taskTypes'][data[i].tag]["tasks_done"] = 0;
+          if (data[i].tag != "github issue" && data[i].tag != "") {
+            tags.value.push(data[i].tag)
+            sorted_data.value['taskTypes'][data[i].tag] = {}
+            sorted_data.value['taskTypes'][data[i].tag]["storypoints"] = 0;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks"] = 0;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_done"] = 0;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_backlog"] = 0;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_todo"] = 0;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_in_progress"] = 0;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_in_review"] = 0;
+          } 
         }
         console.log(tags.value, "data", data)
         store.changeTags(tags.value); 
@@ -131,7 +148,7 @@ export async function useSortData() {
               sorted_data.value[store.assignees[i]].tasks_done = sorted_data.value[store.assignees[i]].tasks_done + 1
             }
           }
-          console.log("store.assignees[i]", store.assignees[i], data, data[i].storypoints)
+          console.log("store.assignees[i]", store.assignees[i], data)
         }
       } catch (error) {
         alert(error.message);
@@ -161,6 +178,18 @@ export async function useSortData() {
             sorted_data.value['taskTypes'][store.tags[i]].tasks = sorted_data.value['taskTypes'][store.tags[i]].tasks + 1
             if (data[j].status == "DONE") {
               sorted_data.value['taskTypes'][store.tags[i]].tasks_done = sorted_data.value['taskTypes'][store.tags[i]].tasks_done + 1
+            }
+            if (data[j].status == "BACKLOG") {
+              sorted_data.value['taskTypes'][store.tags[i]].tasks_backlog = sorted_data.value['taskTypes'][store.tags[i]].tasks_backlog + 1
+            }
+            if (data[j].status == "TODO") {
+              sorted_data.value['taskTypes'][store.tags[i]].tasks_todo = sorted_data.value['taskTypes'][store.tags[i]].tasks_todo + 1
+            }
+            if (data[j].status == "IN_PROGRESS") {
+              sorted_data.value['taskTypes'][store.tags[i]].tasks_in_progress = sorted_data.value['taskTypes'][store.tags[i]].tasks_in_progress + 1
+            }
+            if (data[j].status == "IN_REVIEW") {
+              sorted_data.value['taskTypes'][store.tags[i]].tasks_in_review = sorted_data.value['taskTypes'][store.tags[i]].tasks_in_review + 1
             }
           }
           console.log("store.tags[i]", store.tags[i], data)

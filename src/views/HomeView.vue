@@ -16,6 +16,7 @@ let everyTask = [];
 const store = useStore();
 let lastRefresh = 0;
 let chart = null;
+let chart2 = null;
 /*
 onMounted(async () => {
   lastRefresh = parseInt(localStorage.getItem("refreshtime"))
@@ -47,6 +48,7 @@ async function getData() {
   const { sortedData } = await getStats();
   chartData.value = sortedData.value
   await createChart(chartData.value);
+  await createChart2(chartData.value);
 }
 
 async function statsButton() {
@@ -61,6 +63,7 @@ async function statsButton() {
 async function getStats() {
   const { sorted_data } = await useSortData();
   sortedData.value = sorted_data.value
+  console.log("sortedData.value",sortedData.value)
   if (localStorage.getItem("alltasks") == null) {
           localStorage.setItem("alltasks", JSON.stringify(sortedData.value));
         }
@@ -72,7 +75,7 @@ async function getStats() {
   let projectLabelsData = []
   for (let i in sorted_data.taskTypes) {
     projectLabels.push(i)
-    projectLabelsData.push(sorted_data.taskTypes[i].storypoints)
+    projectLabelsData.push(sorted_data.taskTypes[i].tasks)
   }
   console.log("projectLabels",projectLabels, projectLabelsData)
   const label = projectLabels;
@@ -80,7 +83,7 @@ async function getStats() {
     labels: label,
     datasets: [
       {
-        label: "total hours",
+        label: "total tasks",
         data: projectLabelsData,
         backgroundColor: [
           "rgba(255, 99, 132, 0.2)", // color for first bar
@@ -131,6 +134,80 @@ async function getStats() {
   const ctx = document.getElementById("myChart");
   chart = new Chart(ctx, config);
  }
+ async function createChart2(sorted_data) {
+  let projectLabels = []
+  let projectLabelsData = []
+  let tasks_backlog = 0
+  let tasks_todo = 0
+  let tasks_in_progress = 0
+  let tasks_in_review = 0
+  let tasks_done = 0
+  
+    projectLabels = ["Backlog","Todo","In Progress","In review","Done"];
+      tasks_backlog = tasks_backlog + sorted_data.tasks.backlog
+      tasks_todo = tasks_todo + sorted_data.tasks.todo
+      tasks_in_progress = tasks_in_progress + sorted_data.tasks.in_progress
+      tasks_in_review = tasks_in_review + sorted_data.tasks.in_review
+      tasks_done = tasks_done + sorted_data.tasks.done
+    projectLabelsData = [tasks_backlog,tasks_todo,tasks_in_progress,tasks_in_review,tasks_done]
+  
+  console.log("projectLabels",projectLabels, projectLabelsData)
+  const label = projectLabels;
+  const data = {
+    labels: label,
+    datasets: [
+      {
+        label: "total tasks",
+        data: projectLabelsData,
+        backgroundColor: [
+          "rgba(255, 99, 132, 0.2)", // color for first bar
+          "rgba(54, 162, 235, 0.2)", // color for second bar
+          "rgba(255, 206, 86, 0.2)", // color for third bar
+          // add more colors here for additional bars
+        ],
+        borderColor: [
+          "rgba(255, 99, 132, 1)", // border color for first bar
+          "rgba(54, 162, 235, 1)", // border color for second bar
+          "rgba(255, 206, 86, 1)", // border color for third bar
+          // add more border colors here for additional bars
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+  const config = {
+    type: "bar",
+    data: data,
+    options: {
+      scales: {
+        y: {
+          ticks: {
+            color: "rgba(255, 255, 255, 0.87)",
+          },
+        },
+        x: {
+          ticks: {
+            color: "rgba(255, 255, 255, 0.87)",
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+    },
+  };
+
+  if (chart2) {
+    chart2.destroy();
+    chart2 = null;
+  }
+
+  // Create a new chart instance
+  const ctx = document.getElementById("myChart2");
+  chart2 = new Chart(ctx, config);
+ }
 </script>
 
 <template>
@@ -140,9 +217,15 @@ async function getStats() {
       <button  @click="getData()">Get Data</button>
       <button  @click="statsButton()">Get Stats</button>
     </div>
-    <div class="stat1">
+    <div class="charts">
+      <div class="stat1">
+      <h2>Total tasks per task type</h2>
           <canvas id="myChart"></canvas>
     </div>
+    <div class="stat1">
+    <h2>Status of tasks</h2>
+          <canvas id="myChart2"></canvas>
+    </div></div>
   </main>
 </template>
 
@@ -154,5 +237,10 @@ async function getStats() {
   border-radius: 8px;
   padding: 0.8em;
   margin: 0.8em;
+  min-height: 250px;
+}
+.charts {
+  display: flex;
+
 }
 </style>
