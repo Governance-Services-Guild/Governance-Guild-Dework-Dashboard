@@ -70,16 +70,16 @@ export async function useSortData() {
       loading.value = true;
       let { data, error, status } = await supabase
         .from("assignees")
-        .select(`name`)
+        .select(`name, tasks, tasks_done`)
 
       if (error && status !== 406) throw error;
       if (data) {
         for (let i in data) {
           assignees.value.push(data[i].name)
           sorted_data.value[data[i].name] = {}
-          sorted_data.value[data[i].name]["storypoints"] = 0;
-          sorted_data.value[data[i].name]["tasks"] = 0;
-          sorted_data.value[data[i].name]["tasks_done"] = 0;
+          sorted_data.value[data[i].name]["storypoints"] = data[i].storypoints;
+          sorted_data.value[data[i].name]["tasks"] = data[i].tasks;
+          sorted_data.value[data[i].name]["tasks_done"] = data[i].tasks_done;
         }
         console.log(assignees.value, "data", data)
         store.changeAssignees(assignees.value); 
@@ -98,7 +98,7 @@ export async function useSortData() {
       loading.value = true;
       let { data, error, status } = await supabase
         .from("tags")
-        .select(`tag`)
+        .select(`tag, storypoints, tasks, tasks_done, tasks_backlog, tasks_in_progress, tasks_in_review, tasks_todo`)
 
       if (error && status !== 406) throw error;
       if (data) {
@@ -107,13 +107,13 @@ export async function useSortData() {
           if (data[i].tag != "github issue" && data[i].tag != "") {
             tags.value.push(data[i].tag)
             sorted_data.value['taskTypes'][data[i].tag] = {}
-            sorted_data.value['taskTypes'][data[i].tag]["storypoints"] = 0;
-            sorted_data.value['taskTypes'][data[i].tag]["tasks"] = 0;
-            sorted_data.value['taskTypes'][data[i].tag]["tasks_done"] = 0;
-            sorted_data.value['taskTypes'][data[i].tag]["tasks_backlog"] = 0;
-            sorted_data.value['taskTypes'][data[i].tag]["tasks_todo"] = 0;
-            sorted_data.value['taskTypes'][data[i].tag]["tasks_in_progress"] = 0;
-            sorted_data.value['taskTypes'][data[i].tag]["tasks_in_review"] = 0;
+            sorted_data.value['taskTypes'][data[i].tag]["storypoints"] = data[i].storypoints;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks"] = data[i].tasks;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_done"] = data[i].tasks_done;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_backlog"] = data[i].tasks_backlog;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_todo"] = data[i].tasks_todo;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_in_progress"] = data[i].tasks_in_progress;
+            sorted_data.value['taskTypes'][data[i].tag]["tasks_in_review"] = data[i].tasks_in_review;
           } 
         }
         console.log(tags.value, "data", data)
@@ -127,110 +127,9 @@ export async function useSortData() {
     }
   }
 
-  async function buildAssignees() {
-    // still busy building and testing
-    let name = ""
-    //sorted_data.value = store.sortedData
-    for (let i in store.assignees) {
-      try {
-        loading.value = true;
-        let { data, error, status } = await supabase
-          .from("tasks")
-          .select()
-          .ilike('assignees', `%${store.assignees[i]}%`)
-  
-        if (error && status !== 406) throw error;
-        if (data) {
-          for (let j in data) {
-            sorted_data.value[store.assignees[i]].storypoints = sorted_data.value[store.assignees[i]].storypoints + data[j].storypoints
-            sorted_data.value[store.assignees[i]].tasks = sorted_data.value[store.assignees[i]].tasks + 1
-            if (data[j].status == "DONE") {
-              sorted_data.value[store.assignees[i]].tasks_done = sorted_data.value[store.assignees[i]].tasks_done + 1
-            }
-          }
-          console.log("store.assignees[i]", store.assignees[i], data)
-        }
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        loading.value = false;
-      }
-    }
-    console.log("sorted_data.value", sorted_data.value, store.tags)
-  }
-
-  async function buildTags() {
-    // still busy building and testing
-    let name = ""
-    //sorted_data.value = store.sortedData
-    for (let i in store.tags) {
-      try {
-        loading.value = true;
-        let { data, error, status } = await supabase
-          .from("tasks")
-          .select()
-          .ilike('tags', `%${store.tags[i]}%`)
-  
-        if (error && status !== 406) throw error;
-        if (data) {
-          for (let j in data) {
-            sorted_data.value['taskTypes'][store.tags[i]].storypoints = sorted_data.value['taskTypes'][store.tags[i]].storypoints + data[j].storypoints
-            sorted_data.value['taskTypes'][store.tags[i]].tasks = sorted_data.value['taskTypes'][store.tags[i]].tasks + 1
-            if (data[j].status == "DONE") {
-              sorted_data.value['taskTypes'][store.tags[i]].tasks_done = sorted_data.value['taskTypes'][store.tags[i]].tasks_done + 1
-            }
-            if (data[j].status == "BACKLOG") {
-              sorted_data.value['taskTypes'][store.tags[i]].tasks_backlog = sorted_data.value['taskTypes'][store.tags[i]].tasks_backlog + 1
-            }
-            if (data[j].status == "TODO") {
-              sorted_data.value['taskTypes'][store.tags[i]].tasks_todo = sorted_data.value['taskTypes'][store.tags[i]].tasks_todo + 1
-            }
-            if (data[j].status == "IN_PROGRESS") {
-              sorted_data.value['taskTypes'][store.tags[i]].tasks_in_progress = sorted_data.value['taskTypes'][store.tags[i]].tasks_in_progress + 1
-            }
-            if (data[j].status == "IN_REVIEW") {
-              sorted_data.value['taskTypes'][store.tags[i]].tasks_in_review = sorted_data.value['taskTypes'][store.tags[i]].tasks_in_review + 1
-            }
-          }
-          console.log("store.tags[i]", store.tags[i], data)
-        }
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        loading.value = false;
-      }
-    }
-    console.log("sorted_data.value", sorted_data.value, store.tags)
-  }
-
-  async function buildTags2() {
-    // still busy building and testing
-    let name = ""
-    for (let i in store.tags) {
-      try {
-        loading.value = true;
-        let { data, error, status } = await supabase
-          .from("tasks")
-          .select()
-          .ilike('tags', `%${store.tags[i]}%`)
-  
-        if (error && status !== 406) throw error;
-        if (data) {
-          console.log("Tags tags tags", data)
-        }
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        loading.value = false;
-      }
-    }
-  }
-
   await sortData();
   await getAssignees();
   await getTags();
-  await buildAssignees();
-  await buildTags();
 
   return { sorted_data };
 }
