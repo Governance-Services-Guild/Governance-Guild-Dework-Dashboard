@@ -54,6 +54,7 @@ export async function fetchTaskDetails(taskId) {
         }
         workspace {
           id
+          name
           slug
           __typename
         }

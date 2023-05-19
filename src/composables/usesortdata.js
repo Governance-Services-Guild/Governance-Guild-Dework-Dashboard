@@ -1,21 +1,17 @@
 // mouse.js
 import { ref } from "vue";
-import { useStore } from "../store/index";
 import { supabase } from "../supabase";
 
 // by convention, composable function names start with "use"
-export async function useSortData() {
-  const store = useStore();
-  const loading = ref(true);
+export async function useSortData(workspace, all_tasks) {
   
-  const completedTasks = ref([])
+  const loading = ref(true);
   let done = ref(0)
   let inprogress = ref(0)
   let todo = ref(0)
   let backlog = ref(0)
   let inreview = ref(0)
   let storypoints = ref(0)
-  const completedTasktypes = ref([])
   const sorted_data = ref({});
   const assignees = ref([])
   const tags = ref([])
@@ -29,11 +25,9 @@ export async function useSortData() {
     sorted_data.value['tasks']['done'] = 0
     done.value = 0
     storypoints.value = 0
-    // still busy building and testing
-    console.log("store.tasks", store.tasks)
-    for (let i in store.tasks) {
-      storypoints.value = storypoints.value + store.tasks[i].storypoints
-      switch(store.tasks[i].status) {
+    for (let i in all_tasks) {
+      storypoints.value = storypoints.value + all_tasks[i].storypoints
+      switch(all_tasks[i].status) {
         case 'DONE':
           done.value++
           break;
@@ -53,24 +47,21 @@ export async function useSortData() {
           console.log("Nothing happened")
           break;
       }
-      console.log(store.tasks[i].status, done.value)
     }
-    console.log("storypoints", storypoints.value, done.value, todo.value)
     sorted_data.value['tasks']['backlog'] = backlog.value
     sorted_data.value['tasks']['todo'] = todo.value
     sorted_data.value['tasks']['in_progress'] = inprogress.value
     sorted_data.value['tasks']['in_review'] = inreview.value
     sorted_data.value['tasks']['done'] = done.value
-    //sorted_data.value = store.tasks
   }
 
   async function getAssignees() {
-    // still busy building and testing
     try {
       loading.value = true;
       let { data, error, status } = await supabase
         .from("assignees")
-        .select(`name, tasks, tasks_done`)
+        .select(`name, tasks, tasks_done, storypoints`)
+        .eq("workspace", workspace);
 
       if (error && status !== 406) throw error;
       if (data) {
@@ -81,9 +72,6 @@ export async function useSortData() {
           sorted_data.value[data[i].name]["tasks"] = data[i].tasks;
           sorted_data.value[data[i].name]["tasks_done"] = data[i].tasks_done;
         }
-        console.log(assignees.value, "data", data)
-        store.changeAssignees(assignees.value); 
-        store.changeSortedData(sorted_data.value);     
       }
     } catch (error) {
       alert(error.message);
@@ -99,6 +87,7 @@ export async function useSortData() {
       let { data, error, status } = await supabase
         .from("tags")
         .select(`tag, storypoints, tasks, tasks_done, tasks_backlog, tasks_in_progress, tasks_in_review, tasks_todo`)
+        .eq("workspace", workspace);
 
       if (error && status !== 406) throw error;
       if (data) {
@@ -116,9 +105,7 @@ export async function useSortData() {
             sorted_data.value['taskTypes'][data[i].tag]["tasks_in_review"] = data[i].tasks_in_review;
           } 
         }
-        console.log(tags.value, "data", data)
-        store.changeTags(tags.value); 
-        store.changeSortedData(sorted_data.value);     
+        console.log(tags.value, "data", data)    
       }
     } catch (error) {
       alert(error.message);
