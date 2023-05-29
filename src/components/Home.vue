@@ -2,12 +2,11 @@
 import { ref, onMounted } from "vue";
 import { useGetAggregateData } from "../composables/usegetaggregatedata";
 import { useGetTaskMoveDetails } from "../composables/usegettaskmovedetails";
+import { useGetDoneTasks } from "../composables/usegetdonetasks";
+import { useGetCurrentTasks } from "../composables/usegetcurrenttasks";
 import { fetchWorkspaceTasks } from "../api/workspace";
 import Chart from "chart.js/auto";
 import { Colors } from "chart.js";
-import { HfInference } from '@huggingface/inference'
-
-const hf = new HfInference(import.meta.env.VITE_HUGGING_TEST)
 
 Chart.register(Colors);
 
@@ -15,6 +14,7 @@ const workspace = 'f0cea521-d319-4f02-a20a-7439998dbf82'
 
 let everyTask = {};
 let movedTasks = {};
+let reporttasks = {};
 let lastRefresh = 0;
 let chart = null;
 let chart2 = null;
@@ -22,6 +22,9 @@ let chart3 = null;
 let chart4 = null;
 let tasksDone = ref()
 let decisionsMade = ref()
+let reportTasks = ref()
+const report = ref()
+const loading = ref(false)
 
 
 onMounted(async () => {
@@ -35,10 +38,12 @@ onMounted(async () => {
     console.log("Reloading", everyTask, Date.now());
     localStorage.removeItem("alltasks");
     localStorage.removeItem("movedtasks");
+    localStorage.removeItem("reporttasks");
     await getData();
   } else {
     everyTask = JSON.parse(localStorage.getItem("alltasks"));
     movedTasks = JSON.parse(localStorage.getItem("movedtasks"));
+    reporttasks = JSON.parse(localStorage.getItem("reporttasks"));
     if (everyTask == null) {
       // all_projects == null
       console.log("all_projects == null -> Reloading")
@@ -48,19 +53,18 @@ onMounted(async () => {
     }
   }
 });
-
-async function huggingtest(everyTask) {
-  const test = await hf.summarization({
-  model: 'facebook/bart-large-cnn',
-  inputs:
-    'The tower is 324 metres (1,063 ft) tall, about the same height as an 81-storey building, and the tallest structure in Paris. Its base is square, measuring 125 metres (410 ft) on each side. During its construction, the Eiffel Tower surpassed the Washington Monument to become the tallest man-made structure in the world, a title it held for 41 years until the Chrysler Building in New York City was finished in 1930.',
-  parameters: {
-    max_length: 100
+async function getReport(tasks) {
+  let text = 'State what has been done this month based on the following list of tasks - ' 
+  + tasks + 
+  '. Keep in mind that these tasks are performed by Governance Guild.';
+  console.log("tasks", tasks)
+  try {
+    await navigator.clipboard.writeText(text);
+    console.log('Text copied to clipboard');
+  } catch (err) {
+    console.log('Failed to copy text: ', err);
   }
-})
-console.log("test", test)
 }
-
 
 async function splitObjectIntoKeysAndValues(obj) {
     let keys = Object.keys(obj);
@@ -108,26 +112,56 @@ function transformData(data) {
     return result;
 }
 
+function getTaskNames(tasks) {
+    let taskNames = [];
+    for (let task of tasks) {
+        if (task.subtasks && task.subtasks.length > 0) {
+            //taskNames.push(task.name)
+            for (let subtask of task.subtasks) {
+              taskNames.push(subtask.name);
+            }
+        } else if (task.name && !task.name.toLowerCase().includes("activity list")) {
+            taskNames.push(task.name);
+        }
+    }
+    return taskNames.join(', ');
+}
+
 async function getData() {
+  loading.value = true
   console.log("Running getData")
   const data = await fetchWorkspaceTasks(workspace);
   console.log("data", data.data.getWorkspace.tasks)
   const all_tasks = await useGetAggregateData(data.data.getWorkspace.tasks);
   const moved_tasks = await useGetTaskMoveDetails(data.data.getWorkspace.tasks)
+  const done_tasks = await useGetDoneTasks(data.data.getWorkspace.tasks)
+  const current_tasks = await useGetCurrentTasks(data.data.getWorkspace.tasks)
+  const done = getTaskNames(done_tasks.done_tasks)
+  const current = getTaskNames(current_tasks.current_tasks)
+  reportTasks.value = done + ", "+ current
+  console.log("report_tasks", reportTasks.value)
+  //await getReport(report_tasks)
   console.log("All and moved_tasks",all_tasks.all_tasks, moved_tasks.moved_tasks);
+  console.log("current and done",current_tasks.current_tasks, done_tasks.done_tasks)
   if (localStorage.getItem("alltasks") == null) {
           localStorage.setItem("alltasks", JSON.stringify(all_tasks.all_tasks));
     }
   if (localStorage.getItem("movedtasks") == null) {
           localStorage.setItem("movedtasks", JSON.stringify(moved_tasks.moved_tasks));
     }
+  if (localStorage.getItem("reporttasks") == null) {
+          localStorage.setItem("reporttasks", JSON.stringify(reportTasks.value));
+    }
   await getStats();
+  loading.value = false
 }
 
 async function getStats() {
+  reporttasks = JSON.parse(localStorage.getItem("reporttasks"));
   everyTask = JSON.parse(localStorage.getItem("alltasks"));
   movedTasks = JSON.parse(localStorage.getItem("movedtasks"));
   console.log("all and moved", everyTask, movedTasks)
+  reportTasks.value = reporttasks
   const { results: results1 } = await splitComplexObjectIntoKeysAndTaskValues(everyTask.tags, 'tasks');
   const { results: results2 } = await splitComplexObjectIntoKeysAndTaskValues(everyTask.tags, 'storyPoints');
   const { results: results3 } = await splitObjectIntoKeysAndValues(everyTask.statusValues);
@@ -140,11 +174,12 @@ async function getStats() {
   let newResultsObj2 = await removeKeyValues(keysToRemove2, results2);
   let newResultsObj3 = await removeKeyValues(keysToRemove3, results3);
   console.log("everyTask",everyTask, newResultsObj)
+  tasksDone.value = everyTask.statusValues.done
+  decisionsMade.value = everyTask.tags.Decision.tasks
   await createChart(newResultsObj);
   await createChart2(newResultsObj2);
   await createChart3(newResultsObj3);
   await createChart4(transformedData);
-  await huggingtest(everyTask);
 }
 
  async function createChart(chartdata2) {
@@ -406,36 +441,39 @@ async function getStats() {
 <template>
   <main class="main">
     <div>
-      <h1>Governance Guild Dework Stats</h1>
-    </div>
-    <div class="chartsbox">
-      <div class="charts">
-        <div class="stat2">
-          <h2>Monthly performance</h2>
-          <canvas id="myChart4"></canvas>
-        </div>
-      </div>
-      <div class="charts">
-        <div class="stat1">
-          <h2>Total tasks per task type</h2>
-          <canvas id="myChart"></canvas>
-        </div>
-        <div class="stat1">
-          <h2>Total hours per task type</h2>
-          <canvas id="myChart2"></canvas>
-        </div>
-        <div class="stat1">
-          <h2>Current Status of Tasks</h2>
-          <canvas id="myChart3"></canvas>
-        </div>
-      </div>
-    </div>
-    <div>
       <div>
-        <p>Tasks done {{ tasksDone }}</p>
-        <p>Decisions made {{ decisionsMade }}</p>
+        <h1>Governance Guild Dework Stats</h1>
+      </div>
+      <div class="chartsbox">
+        <div class="charts2">
+          <div class="stat2">
+            <h2>Monthly performance</h2>
+            <canvas id="myChart4"></canvas>
+          </div>
+          <div>
+          <p>Total Tasks done {{ tasksDone }}</p>
+          <p>Decisions made {{ decisionsMade }}</p>
+          <button v-on:click="getReport(reportTasks)">Generate Chat GPT prompt</button>
+          <p>{{ report }}</p>
+        </div>
+        </div>
+        <div class="charts">
+          <div class="stat1">
+            <h2>Current Status of Tasks</h2>
+            <canvas id="myChart3"></canvas>
+          </div>
+          <div class="stat1">
+            <h2>Total tasks per task type</h2>
+            <canvas id="myChart"></canvas>
+          </div>
+          <div class="stat1">
+            <h2>Total hours per task type</h2>
+            <canvas id="myChart2"></canvas>
+          </div>
+        </div>
       </div>
     </div>
+    <div></div>
   </main>
 </template>
 
@@ -454,6 +492,7 @@ async function getStats() {
   border-radius: 8px;
   padding: 0.8em;
   margin: 0.2em;
+  margin-bottom: 4em;
   max-height: 400px;
   min-width: 800px;
 }
@@ -462,7 +501,7 @@ async function getStats() {
   flex-direction: column;
   border-radius: 8px;
 }
-.charts {
+.charts2 {
   display: flex;
   flex-direction: column;
   border-radius: 8px;
