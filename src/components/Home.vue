@@ -31,11 +31,9 @@ onMounted(async () => {
   lastRefresh = parseInt(localStorage.getItem("refreshtime"))
     ? parseInt(localStorage.getItem("refreshtime"))
     : 0;
-  //localStorage.removeItem("alltasks");
   if (parseInt(lastRefresh) < parseInt(Date.now()) - 30000) {
     localStorage.setItem("refreshtime", Date.now());
     lastRefresh = Date.now();
-    console.log("Reloading", everyTask, Date.now());
     localStorage.removeItem("alltasks");
     localStorage.removeItem("movedtasks");
     localStorage.removeItem("reporttasks");
@@ -46,7 +44,7 @@ onMounted(async () => {
     reporttasks = JSON.parse(localStorage.getItem("reporttasks"));
     if (everyTask == null) {
       // all_projects == null
-      console.log("all_projects == null -> Reloading")
+      //console.log("all_projects == null -> Reloading")
       await getData();
     } else {
       await getStats()
@@ -57,7 +55,6 @@ async function getReport(tasks) {
   let text = 'State what has been done this month based on the following list of tasks - ' 
   + tasks + 
   '. Keep in mind that these tasks are performed by Governance Guild.';
-  console.log("tasks", tasks)
   try {
     await navigator.clipboard.writeText(text);
     console.log('Text copied to clipboard');
@@ -129,9 +126,7 @@ function getTaskNames(tasks) {
 
 async function getData() {
   loading.value = true
-  console.log("Running getData")
   const data = await fetchWorkspaceTasks(workspace);
-  console.log("data", data.data.getWorkspace.tasks)
   const all_tasks = await useGetAggregateData(data.data.getWorkspace.tasks);
   const moved_tasks = await useGetTaskMoveDetails(data.data.getWorkspace.tasks)
   const done_tasks = await useGetDoneTasks(data.data.getWorkspace.tasks)
@@ -139,10 +134,6 @@ async function getData() {
   const done = getTaskNames(done_tasks.done_tasks)
   const current = getTaskNames(current_tasks.current_tasks)
   reportTasks.value = done + ", "+ current
-  console.log("report_tasks", reportTasks.value)
-  //await getReport(report_tasks)
-  console.log("All and moved_tasks",all_tasks.all_tasks, moved_tasks.moved_tasks);
-  console.log("current and done",current_tasks.current_tasks, done_tasks.done_tasks)
   if (localStorage.getItem("alltasks") == null) {
           localStorage.setItem("alltasks", JSON.stringify(all_tasks.all_tasks));
     }
@@ -160,20 +151,17 @@ async function getStats() {
   reporttasks = JSON.parse(localStorage.getItem("reporttasks"));
   everyTask = JSON.parse(localStorage.getItem("alltasks"));
   movedTasks = JSON.parse(localStorage.getItem("movedtasks"));
-  console.log("all and moved", everyTask, movedTasks)
   reportTasks.value = reporttasks
   const { results: results1 } = await splitComplexObjectIntoKeysAndTaskValues(everyTask.tags, 'tasks');
   const { results: results2 } = await splitComplexObjectIntoKeysAndTaskValues(everyTask.tags, 'storyPoints');
   const { results: results3 } = await splitObjectIntoKeysAndValues(everyTask.statusValues);
   var transformedData = transformData(movedTasks);
-  console.log("transformedData", transformedData)
   let keysToRemove = ['github issue','Audited'];
   let keysToRemove2 = ['github issue','Audited'];
   let keysToRemove3 = ['done'];
   let newResultsObj = await removeKeyValues(keysToRemove, results1);
   let newResultsObj2 = await removeKeyValues(keysToRemove2, results2);
   let newResultsObj3 = await removeKeyValues(keysToRemove3, results3);
-  console.log("everyTask",everyTask, newResultsObj)
   tasksDone.value = everyTask.statusValues.done
   decisionsMade.value = everyTask.tags.Decision.tasks
   await createChart(newResultsObj);
@@ -185,8 +173,6 @@ async function getStats() {
  async function createChart(chartdata2) {
   let projectLabels = chartdata2[0]
   let projectLabelsData = chartdata2[1]
-  
-  console.log("projectLabels",projectLabels, projectLabelsData)
   const label = projectLabels;
   const data = {
     labels: label,
@@ -247,8 +233,6 @@ async function getStats() {
  async function createChart2(chartdata2) {
   let projectLabels = chartdata2[0]
   let projectLabelsData = chartdata2[1]
-  
-  console.log("projectLabels",projectLabels, projectLabelsData)
   const label = projectLabels;
   const data = {
     labels: label,
@@ -309,8 +293,6 @@ async function getStats() {
  async function createChart3(chartdata3) {
   let projectLabels = chartdata3[0]
   let projectLabelsData = chartdata3[1]
-  
-  console.log("projectLabels",projectLabels, projectLabelsData)
   const label = projectLabels;
   const data = {
     labels: label,
@@ -371,8 +353,6 @@ async function getStats() {
  async function createChart4(chartdata4) {
   let projectLabels = chartdata4[0]
   let projectLabelsData = chartdata4[1]
-  
-  console.log("projectLabels",projectLabels, projectLabelsData)
   const label = projectLabels;
   const data = chartdata4
   const config = {
