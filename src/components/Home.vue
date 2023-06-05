@@ -25,6 +25,8 @@ let decisionsMade = ref()
 let reportTasks = ref()
 const report = ref()
 const loading = ref(false)
+const textBefore = ref('State what has been done this month based on the following list of tasks')
+const textAfter = ref('Keep in mind that these tasks are performed by Governance Guild, ignore the USD amounts in the titles of the tasks and dont focus too much on the dates of the tasks.')
 
 
 onMounted(async () => {
@@ -52,9 +54,9 @@ onMounted(async () => {
   }
 });
 async function getReport(tasks) {
-  let text = 'State what has been done this month based on the following list of tasks - ' 
-  + tasks + 
-  '. Keep in mind that these tasks are performed by Governance Guild.';
+  let beforeTasks = document.getElementById('beforeTasks').value;
+  let afterTasks = document.getElementById('afterTasks').value;
+  let text = beforeTasks + ' - ' + tasks + ' - '+ afterTasks;
   try {
     await navigator.clipboard.writeText(text);
     console.log('Text copied to clipboard');
@@ -164,15 +166,20 @@ async function getStats() {
   let newResultsObj3 = await removeKeyValues(keysToRemove3, results3);
   tasksDone.value = everyTask.statusValues.done
   decisionsMade.value = everyTask.tags.Decision.tasks
+  transformedData.sort((a, b) => {
+  let dateA = new Date(a.x), dateB = new Date(b.x);
+  return dateB - dateA; // sorts in descending order, for ascending order use `dateA - dateB`
+});
   await createChart(newResultsObj);
   await createChart2(newResultsObj2);
   await createChart3(newResultsObj3);
   await createChart4(transformedData);
+  console.log(transformedData, movedTasks)
 }
 
- async function createChart(chartdata2) {
-  let projectLabels = chartdata2[0]
-  let projectLabelsData = chartdata2[1]
+ async function createChart(chartdata) {
+  let projectLabels = chartdata[0]
+  let projectLabelsData = chartdata[1]
   const label = projectLabels;
   const data = {
     labels: label,
@@ -358,7 +365,7 @@ async function getStats() {
   const config = {
   type: 'bar',
   data: {
-    labels: Object.keys(movedTasks),
+    labels: chartdata4.map(item => item.x),
     datasets: [{
       label: 'Tasks Created',
       data: data,
@@ -433,7 +440,13 @@ async function getStats() {
           <div>
           <p>Total Tasks done {{ tasksDone }}</p>
           <p>Decisions made {{ decisionsMade }}</p>
-          <button v-on:click="getReport(reportTasks)">Generate Chat GPT prompt</button>
+          <h2>Generate chatGPT Prompt</h2>
+          <label for="beforeTasks">Text before list of tasks:</label><br>
+          <textarea id="beforeTasks" rows="4" cols="50">{{ textBefore }}</textarea><br>
+          <p>List of tasks</p>
+          <label for="afterTasks">Text after list of tasks:</label><br>
+          <textarea id="afterTasks" rows="4" cols="50"> {{ textAfter }}</textarea><br>
+          <button class="reportBtn" v-on:click="getReport(reportTasks)">Generate Chat GPT prompt</button>
           <p>{{ report }}</p>
         </div>
         </div>
@@ -488,5 +501,17 @@ async function getStats() {
 }
 .chartsbox {
   display: flex;
+}
+.reportBtn {
+  padding: 0.5em;
+  cursor: pointer;
+}
+#beforeTasks {
+  background-color: black;
+  color: aliceblue;
+}
+#afterTasks {
+  background-color: black;
+  color: aliceblue;
 }
 </style>

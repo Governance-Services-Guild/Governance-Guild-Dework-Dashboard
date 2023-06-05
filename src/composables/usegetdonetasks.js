@@ -5,10 +5,6 @@ export async function useGetDoneTasks(tasks) {
   for (const taskId in tasks) {
     const task = tasks[taskId];
 
-    // Filter tasks with status = 'IN_REVIEW' and tag label = 'Audited'
-    const hasInReviewStatus = task.status === 'IN_REVIEW';
-    const hasAuditedTag = task.tags.some(tag => tag.label === 'Audited');
-
     // Filter tasks with 'E' kind diff in audit log and created in the current month
     const hasRecentDoneStatus = task.auditLog.some(log => {
       const isStatusChanged = log.diff.some(diff => diff.kind === 'E' && diff.rhs === 'IN_REVIEW');
@@ -19,21 +15,7 @@ export async function useGetDoneTasks(tasks) {
     const taskCreatedAtMonth = new Date(task.createdAt).getMonth();
     const isTaskCreatedThisMonth = taskCreatedAtMonth === currentMonth;
 
-    if (hasInReviewStatus && hasAuditedTag) {
-      done_tasks.push({
-        assignees: task.assignees,
-        auditLog: task.auditLog,
-        createdAt: task.createdAt,
-        description: task.description,
-        doneAt: task.doneAt,
-        id: task.id,
-        name: task.name,
-        status: task.status,
-        storyPoints: task.storyPoints,
-        subtasks: task.subtasks,
-        tags: task.tags
-      });
-    } else if (hasRecentDoneStatus && isTaskCreatedThisMonth) {
+    if (hasRecentDoneStatus && isTaskCreatedThisMonth) {
       done_tasks.push({
         assignees: task.assignees,
         auditLog: task.auditLog,
